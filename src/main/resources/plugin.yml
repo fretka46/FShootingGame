@@ -1,0 +1,4 @@
+name: FShootingGame
+version: '1.0-SNAPSHOT'
+main: com.fretka46.fShootingGame.FShootingGame
+api-version: '1.21'
