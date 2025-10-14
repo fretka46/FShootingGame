@@ -2,10 +2,10 @@ package com.fretka46.fShootingGame.listeners;
 
 import com.fretka46.fShootingGame.Engine;
 import com.fretka46.fShootingGame.FShootingGame;
-import com.fretka46.fShootingGame.Storage.DatabaseManager;
 import com.fretka46.fShootingGame.ZombieSpawner;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.damage.DamageType;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -29,11 +29,13 @@ public class GameListener implements Listener {
             event.getDrops().clear();
             event.setDroppedExp(0);
 
+            // Do not play death animation
+            event.setDeathSound(null);
+
             Player killer = event.getEntity().getKiller();
-            if (killer != null) {
+            if (killer != null && event.getDamageSource().getDamageType() == DamageType.ARROW) {
                 // Play sound
                 killer.playSound(killer.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.7f);
-
 
                 // Update score
                 Engine.PLAYER_SCORES.putIfAbsent(killer.getUniqueId(), 0);
