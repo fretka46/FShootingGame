@@ -1,10 +1,11 @@
 package com.fretka46.fShootingGame;
 
+import com.fretka46.fShootingGame.Messages.Log;
+import com.fretka46.fShootingGame.Messages.Translations;
+import com.fretka46.fShootingGame.Storage.DatabaseManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,14 +18,16 @@ public class Engine {
     // Global score storage for this session, keyed by player UUID
     public static final Map<UUID, Integer> PLAYER_SCORES = new ConcurrentHashMap<>();
     public static Boolean isRunning = false;
+    public static List<Location> spawnPoints = new ArrayList<>();
 
     public static void startGame() {
-        isRunning = true;
+        Log.info("Starting game");
 
         // Get all spawning points from config
         FileConfiguration config = FShootingGame.getPlugin(FShootingGame.class).getConfig();
-        List<Location> spawnPoints = new ArrayList<>();
         if (config.isList("spawnPoints")) {
+            spawnPoints.clear();
+
             for (Object obj : config.getList("spawnPoints")) {
                 if (obj instanceof java.util.Map map) {
                     String world = (String) map.get("world");
@@ -40,62 +43,81 @@ public class Engine {
             }
         }
 
-        // Initialize scores for online players
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            PLAYER_SCORES.putIfAbsent(p.getUniqueId(), 0);
+        if (spawnPoints.isEmpty()) {
+            Log.severe("Cannot start game: No valid spawn points configured.");
+            return;
         }
 
-        // Delay start a bit, then start adaptive spawning
-        Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> new BukkitRunnable() {
-            // Use a small tick to allow dynamic interval changes; we accumulate until next spawn
-            private int ticksUntilNextSpawn = computeSpawnIntervalTicks(0);
+        isRunning = true;
+        PLAYER_SCORES.clear();
 
-            @Override
-            public void run() {
-                // Ensure we have entries for any new players
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    PLAYER_SCORES.putIfAbsent(p.getUniqueId(), 0);
-                }
+        Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
 
-                // Determine current highest score
-                int maxScore = 0;
-                for (int sc : PLAYER_SCORES.values()) {
-                    if (sc > maxScore) maxScore = sc;
-                }
-
-                // Compute current target interval and despawn time from maxScore
-                int targetInterval = computeSpawnIntervalTicks(maxScore);
-                int despawnTicks = computeDespawnTicks(maxScore);
-
-                // Count down and spawn when due
-                ticksUntilNextSpawn -= 5; // this task runs every 5 ticks
-                if (ticksUntilNextSpawn <= 0) {
-                    for (Location spawnPoint : spawnPoints) {
-                        ZombieSpawner.spawnZombie(spawnPoint, despawnTicks);
-                    }
-                    ticksUntilNextSpawn = targetInterval;
-                }
+            for (int i = 1; i <= 3 ; i++) {
+                // Spawn initial zombies
+                Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
+                    ZombieSpawner.spawnZombie(0);
+                }, Math.max(1, 20 * i));
             }
-        }.runTaskTimer(FShootingGame.getPlugin(FShootingGame.class), 0L, 5L), 20L * 5); // Start after 5 seconds
+
+            // Schedule game stop
+            Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
+                isRunning = false;
+
+                // Save scores to database
+                // foreach
+                PLAYER_SCORES.forEach((uuid, score) -> {
+                    var player = Bukkit.getPlayer(uuid);
+                    if (player != null) {
+                        if (player.isOnline()) {
+                            var tagResolver = net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("score", String.valueOf(score));
+                            Translations.send(Bukkit.getPlayer(uuid), "gameover_message", tagResolver);
+                        }
+
+                        DatabaseManager.updateScore(uuid, score);
+                        // execute commands from config
+                        if (config.isList("rewardCommands")) {
+                            for (Object cmdObj : config.getList("rewardCommands")) {
+                                if (cmdObj instanceof String cmd) {
+                                    String command = cmd.replace("{player}", player.getName())
+                                            .replace("{uuid}", uuid.toString())
+                                            .replace("{multiplier_score}", String.valueOf(score * config.getDouble("rewardMultiplier", 1)))
+                                            .replace("{score}", String.valueOf(score));
+                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                                }
+                            }
+                        }
+                        else
+                            Log.severe("Reward commands are not properly configured.");
+                    }
+                });
+            }, Math.max(1, 20 * config.getInt("gameLength", 20)));
+
+        }, Math.max(1, 20 * 5));
     }
 
-    public static int addScore(UUID playerId, int delta) {
-        return PLAYER_SCORES.merge(playerId, delta, Integer::sum);
+    public static void scheduleRespawn() {
+        if (!isRunning) return;
+
+        // Determine current max score
+        int currentMaxScore = PLAYER_SCORES.values().stream().max(Integer::compareTo).orElse(0);
+
+        // Schedule next spawn based on max score
+        int baseSpawnTicks = 100; // 5 seconds
+        int minSpawnTicks = 10; // 0.5 seconds
+        int spawnTicks = baseSpawnTicks - currentMaxScore;
+        if (spawnTicks < minSpawnTicks) spawnTicks = minSpawnTicks;
+
+       float timeBeforeSpawn = Math.round((spawnTicks / 20f) * 100f) / 100f;
+
+        Log.debug("Scheduling next zombie spawn in " + timeBeforeSpawn + " s (max score: " + currentMaxScore + ")");
+
+        Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
+            if (!isRunning) return;
+
+            ZombieSpawner.spawnZombie(currentMaxScore);
+        }, Math.max(1, spawnTicks));
     }
 
-    // Spawn interval in ticks; gets faster (smaller) with higher score
-    private static int computeSpawnIntervalTicks(int maxScore) {
-        int base = 100; // 5 seconds
-        int min = 20;   // 1 second
-        int interval = base - (maxScore * 2); // 2 ticks faster per score point
-        return Math.max(min, interval);
-    }
 
-    // Despawn time in ticks; shorter with higher score
-    private static int computeDespawnTicks(int maxScore) {
-        int base = 200; // 10 seconds
-        int min = 40;   // 2 seconds
-        int ticks = base - (maxScore * 4); // 4 ticks shorter per score point
-        return Math.max(min, ticks);
-    }
 }

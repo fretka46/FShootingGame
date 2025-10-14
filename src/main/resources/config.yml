@@ -1,10 +1,24 @@
 # Plugin configuration
-
 debug: true
 
 rewardMultiplier: 1.5
+# {player} {uuid} {score} {multiplier_score}
 rewardCommands:
-  - "give %player% diamond %rewardAmount%"
+  - "say Congratulations to {player}! You scored {score} points!, earning a total of {multiplier_score} points!"
+
+gameLength: 20
+baseDespawnTicks: 100
+minDespawnTicks: 40
+# Despawn speed is baseDespawnTicks - (score * despawnMultiplier)
+despawnMultiplier: 3
+# Spawning speed is internally calculated
+
+
+message_prefix: "<blue>[ FShootingGame ]</blue>"
+start_message: "<green>The game has started!"
+gameover_message: "<red>Game Over! Your score: <score>"
+already_running: "<red>A game is already running!"
+
 
 spawnPoints:
   - world: world
