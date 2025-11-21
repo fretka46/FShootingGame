@@ -25,6 +25,18 @@ public class GameListener implements Listener {
                 return; // not our zombie
             }
 
+            // Check config allowed sources
+            var config = FShootingGame.getPlugin(FShootingGame.class).getConfig();
+
+            var allowedSources = new java.util.ArrayList<DamageType>();
+            if (config.getBoolean("allowArrow"))
+                allowedSources.add(DamageType.ARROW);
+            if (config.getBoolean("allowSnowball") || config.getBoolean("allowEggs"))
+                allowedSources.add(DamageType.THROWN);
+
+            if (!allowedSources.contains(event.getDamageSource().getDamageType()))
+                return; // not an allowed damage source
+
             // Disable drops
             event.getDrops().clear();
             event.setDroppedExp(0);
@@ -33,7 +45,7 @@ public class GameListener implements Listener {
             event.setDeathSound(null);
 
             Player killer = event.getEntity().getKiller();
-            if (killer != null && event.getDamageSource().getDamageType() == DamageType.ARROW) {
+            if (killer != null) {
                 // Play sound
                 killer.playSound(killer.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.7f);
 

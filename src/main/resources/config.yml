@@ -13,6 +13,11 @@ minDespawnTicks: 40
 despawnMultiplier: 3
 # Spawning speed is internally calculated
 
+# Allowed damage sources
+allowArrow: true
+allowSnowball: false
+allowEggs: false
+
 
 message_prefix: "<blue>[ FShootingGame ]</blue>"
 start_message: "<green>The game has started!"
