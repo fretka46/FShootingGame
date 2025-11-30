@@ -6,6 +6,12 @@ rewardMultiplier: 1.5
 rewardCommands:
   - "say Congratulations to {player}! You scored {score} points!, earning a total of {multiplier_score} points!"
 
+mob_skin: "SomeModelEngineSkin"
+premium_mob_skin: "SomeOtherModelEngineSkin"
+
+max_spawned_mobs: 5
+premium_spawn_interval: 20
+
 gameLength: 20
 baseDespawnTicks: 100
 minDespawnTicks: 40

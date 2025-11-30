@@ -11,6 +11,7 @@ public final class FShootingGame extends JavaPlugin {
 
     // Reusable NamespacedKey for marking our spawned zombies
     public static NamespacedKey ZOMBIE_KEY;
+    public static NamespacedKey PREMIUM_ZOMBIE_KEY;
 
     @Override
     public void onEnable() {
@@ -19,6 +20,7 @@ public final class FShootingGame extends JavaPlugin {
 
         // Initialize shared NamespacedKey
         ZOMBIE_KEY = new NamespacedKey(this, "fsg_zombie");
+        PREMIUM_ZOMBIE_KEY = new NamespacedKey(this, "fsg_premium_zombie");
 
         // Connect database
         try {

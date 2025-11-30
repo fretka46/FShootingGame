@@ -50,9 +50,9 @@ public class PapiExpansion extends PlaceholderExpansion {
             var topPlayers = DatabaseManager.getTopPlayers();
             if (idx >= 0 && idx < topPlayers.size()) {
                 if ("name".equals(parts[2])) {
-                    return topPlayers.get(idx)[0] != null ? topPlayers.get(idx)[0] : "";
+                    return topPlayers.get(idx)[0] != null ? topPlayers.get(idx)[0] : "Nikdo";
                 } else if ("score".equals(parts[2])) {
-                    return topPlayers.get(idx)[1] != null ? topPlayers.get(idx)[1] : "";
+                    return topPlayers.get(idx)[1] != null ? topPlayers.get(idx)[1] : "Nic";
                 }
             } else {
                 return "";

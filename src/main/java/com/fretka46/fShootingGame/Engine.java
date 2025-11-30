@@ -53,7 +53,7 @@ public class Engine {
 
         Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
 
-            for (int i = 1; i <= 3 ; i++) {
+            for (int i = 1; i <= config.getInt("max_spawned_mobs", 3) ; i++) {
                 // Spawn initial zombies
                 Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
                     ZombieSpawner.spawnZombie(0);
@@ -63,6 +63,9 @@ public class Engine {
             // Schedule game stop
             Bukkit.getScheduler().runTaskLater(FShootingGame.getPlugin(FShootingGame.class), () -> {
                 isRunning = false;
+
+                // Remove all zombies
+                ZombieSpawner.killAllZombies();
 
                 // Save scores to database
                 // foreach
