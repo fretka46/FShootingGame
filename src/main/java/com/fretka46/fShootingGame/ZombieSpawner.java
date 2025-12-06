@@ -76,6 +76,9 @@ public class ZombieSpawner {
         // Set silent
         entity.setSilent(true);
 
+        // Remove equipment
+        zombie.getEquipment().clear();
+
         // Apply Model Engine model
         ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(entity);
 
