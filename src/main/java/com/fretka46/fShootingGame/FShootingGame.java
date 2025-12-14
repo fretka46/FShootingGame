@@ -1,5 +1,6 @@
 package com.fretka46.fShootingGame;
 
+import com.fretka46.fShootingGame.Commands.Reload;
 import com.fretka46.fShootingGame.Commands.RunGame;
 import com.fretka46.fShootingGame.Storage.DatabaseManager;
 import com.fretka46.fShootingGame.listeners.GameListener;
@@ -39,6 +40,7 @@ public final class FShootingGame extends JavaPlugin {
 
         // Register command to start the game (Paper's BasicCommand)
         registerCommand("fsg-start", new RunGame());
+        registerCommand("fsg-reload", new Reload());
     }
 
     @Override
